@@ -318,11 +318,6 @@ For general issues:
 
 ---
 
-## 📄 License
 
-This project is proprietary software. All rights reserved.
-
----
-
-**Last Updated**: January 2024  
+**Last Updated**: April 2026
 **Version**: 1.0.0
