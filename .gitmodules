@@ -1,0 +1,3 @@
+[submodule "chozha-frontend"]
+	path = chozha-frontend
+	url = https://github.com/njcodez/chozha-frontend.git

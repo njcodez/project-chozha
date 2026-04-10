@@ -1,0 +1,81 @@
+# =========================
+# OS / System files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Environment variables
+# =========================
+.env
+
+*.env
+
+# =========================
+# Python (backend)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# =========================
+# Node (frontend handled separately too)
+# =========================
+node_modules/
+
+# =========================
+# Build / dist
+# =========================
+dist/
+build/
+.out/
+
+# =========================
+# Large files (IMPORTANT)
+# =========================
+# Models / weights
+*.pt
+*.pth
+*.h5
+*.ckpt
+*.onnx
+*.pb
+*.bin
+
+
+# Images / test artifacts (optional)
+test.jpg
+*.png
+*.jpg
+*.jpeg
+*.gif
+/test
+# =========================
+# Docker
+# =========================
+docker-data/
+*.tar
+backend/sam2
+# =========================
+# Misc
+# =========================
+*.zip
+*.rar
+*.7z

@@ -1,0 +1,101 @@
+#version: "3.9"
+
+# ── Named volumes ────────────────────────────────────────────────────────────
+volumes:
+  storage:          # shared between api + worker
+  hf_cache:         # HuggingFace model cache (worker only, persists downloads)
+  redis_data:
+
+# ── Shared env fragment (YAML anchor) ────────────────────────────────────────
+x-app-env: &app-env
+  DATABASE_URL:            ${DATABASE_URL:-sqlite:////storage/db/chozha.db}
+  REDIS_URL:               ${REDIS_URL:-redis://redis:6379/0}
+  STORAGE_ROOT:            /storage
+  SAM2_MODEL_ID:           ${SAM2_MODEL_ID:-facebook/sam2-hiera-large}
+  MASTER_PASSWORD:         ${MASTER_PASSWORD:-admin123}
+  BASE_URL:                ${BASE_URL:-http://localhost:8000}
+  HF_HOME:                 /hf_cache
+  # Suppress tokenizer parallelism warnings inside workers
+  TOKENIZERS_PARALLELISM:  "false"
+
+services:
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI ────────────────────────────────────────────────────────────────
+  api:
+    build: .
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      <<: *app-env
+    volumes:
+      - storage:/storage
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Celery worker ──────────────────────────────────────────────────────────
+  worker:
+    build: .
+    restart: unless-stopped
+    command: >
+      celery -A tasks.celery_app worker
+        --loglevel=info
+        --concurrency=1
+        --pool=solo
+        -Q celery
+    environment:
+      <<: *app-env
+    volumes:
+      - storage:/storage
+      - hf_cache:/hf_cache
+    depends_on:
+      redis:
+        condition: service_healthy
+    # GPU support — remove the `deploy` block for CPU-only machines.
+    # Docker will silently ignore `--gpus all` if no GPU is present
+    # only when using the `deploy` key via docker compose (not the CLI flag).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ── Cloudflare Tunnel ──────────────────────────────────────────────────────
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   restart: unless-stopped
+  #   command: tunnel --no-autoupdate run --url http://api:8000
+  #   environment:
+  #     TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+  #   depends_on:
+  #     api:
+  #       condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --url http://api:8000
+    depends_on:
+      - api

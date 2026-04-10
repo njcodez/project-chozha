@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "690791219970",
+    "project_id": "project-chozha",
+    "storage_bucket": "project-chozha.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:690791219970:android:5db58f67cee2a37dae781b",
+        "android_client_info": {
+          "package_name": "com.project.chozha"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmeAtM6Z4bz5N1fjaoZI8qpTMjMcvzS_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

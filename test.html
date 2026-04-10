@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Project Chozha API Tester</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 800px; margin: auto; }
+    input, button, textarea { margin: 5px 0; width: 100%; padding: 8px; }
+    img { max-width: 100%; margin-top: 10px; }
+    .card { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+
+<h2>🔗 API Base URL</h2>
+<input id="baseUrl" placeholder="https://your-api-url" />
+
+<h2>👤 Username Check</h2>
+<input id="username" placeholder="username" />
+<button onclick="checkUsername()">Check Username</button>
+<div id="usernameResult"></div>
+
+<h2>📤 Upload Job</h2>
+<input type="file" id="imageInput" />
+<button onclick="uploadJob()">Upload</button>
+
+<h2>📋 Get Jobs</h2>
+<button onclick="getJobs()">Public Feed</button>
+<button onclick="getMyJobs()">My Jobs</button>
+<div id="jobs"></div>
+
+<h2>📄 Job Details</h2>
+<input id="jobId" placeholder="job_id" />
+<button onclick="getJob()">Get Job</button>
+<button onclick="pollJob()">Poll Status</button>
+
+<div id="jobDetails"></div>
+
+<h2>✏️ Update Job</h2>
+<input id="title" placeholder="title" />
+<textarea id="description" placeholder="description"></textarea>
+<label>
+  <input type="checkbox" id="isPublic" checked /> Public
+</label>
+<button onclick="updateJob()">Update</button>
+
+<h2>🗑️ Delete Job</h2>
+<input id="password" placeholder="master password" />
+<button onclick="deleteJob()">Delete</button>
+
+<script>
+function base() {
+  return document.getElementById("baseUrl").value;
+}
+
+function getUsername() {
+  return document.getElementById("username").value;
+}
+
+// 👤 Username check
+async function checkUsername() {
+  const res = await fetch(`${base()}/usernames/check?username=${getUsername()}`);
+  const data = await res.json();
+  document.getElementById("usernameResult").innerText = JSON.stringify(data);
+}
+
+// 📤 Upload
+async function uploadJob() {
+  const file = document.getElementById("imageInput").files[0];
+  const form = new FormData();
+  form.append("image", file);
+  form.append("username", getUsername());
+
+  const res = await fetch(`${base()}/jobs`, {
+    method: "POST",
+    body: form
+  });
+
+  const data = await res.json();
+  alert("Job ID: " + data.job_id);
+  document.getElementById("jobId").value = data.job_id;
+}
+
+// 📋 Jobs
+async function getJobs() {
+  const res = await fetch(`${base()}/jobs`);
+  const data = await res.json();
+  renderJobs(data.items);
+}
+
+async function getMyJobs() {
+  const res = await fetch(`${base()}/jobs?username=${getUsername()}`);
+  const data = await res.json();
+  renderJobs(data.items);
+}
+
+function renderJobs(items) {
+  const container = document.getElementById("jobs");
+  container.innerHTML = "";
+  items.forEach(j => {
+    container.innerHTML += `
+      <div class="card">
+        <b>${j.job_id}</b><br/>
+        User: ${j.username}<br/>
+        Status: ${j.status}<br/>
+        <img src="${j.input_image_url}" />
+      </div>
+    `;
+  });
+}
+
+// 📄 Job details
+async function getJob() {
+  const id = document.getElementById("jobId").value;
+  const res = await fetch(`${base()}/jobs/${id}`);
+  const data = await res.json();
+  renderJob(data);
+}
+
+function renderJob(j) {
+  document.getElementById("jobDetails").innerHTML = `
+    <div class="card">
+      <b>${j.job_id}</b><br/>
+      Status: ${j.status}<br/>
+      <img src="${j.input_image_url}" />
+      ${j.output_image_url ? `<img src="${j.output_image_url}" />` : ""}
+    </div>
+  `;
+}
+
+// 🔄 Poll
+let pollInterval;
+function pollJob() {
+  clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    const id = document.getElementById("jobId").value;
+    const res = await fetch(`${base()}/jobs/${id}`);
+    const data = await res.json();
+    renderJob(data);
+
+    if (data.status === "done" || data.status === "failed") {
+      clearInterval(pollInterval);
+      alert("Finished: " + data.status);
+    }
+  }, 3000);
+}
+
+// ✏️ Update
+async function updateJob() {
+  const id = document.getElementById("jobId").value;
+
+  const body = {
+    title: document.getElementById("title").value,
+    description: document.getElementById("description").value,
+    is_public: document.getElementById("isPublic").checked
+  };
+
+  await fetch(`${base()}/jobs/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  alert("Updated");
+}
+
+// 🗑️ Delete
+async function deleteJob() {
+  const id = document.getElementById("jobId").value;
+
+  await fetch(`${base()}/jobs/${id}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      master_password: document.getElementById("password").value
+    })
+  });
+
+  alert("Deleted");
+}
+</script>
+
+</body>
+</html>
